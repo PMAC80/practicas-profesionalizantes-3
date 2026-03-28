@@ -1,0 +1,57 @@
+/* ============================================
+   ESTILOS CSS - GESTIÓN DE STOCK
+   ============================================ */
+
+/* Estilo general del cuerpo de la página */
+body {
+    font-family: Arial, sans-serif;      /* Tipo de letra */
+    max-width: 800px;                    /* Ancho máximo */
+    margin: 20px auto;                   /* Centrado con margen arriba */
+}
+
+/* Espacio entre los formularios */
+.form-group {
+    margin: 10px 0;                      /* Margen arriba y abajo */
+}
+
+/* Estilo de los campos de entrada (inputs) */
+input, select {
+    padding: 8px;                        /* Relleno interno */
+    margin: 5px 0;                       /* Margen entre elementos */
+}
+
+/* Estilo de los botones */
+button {
+    padding: 8px 15px;                   /* Relleno interno */
+    margin: 5px 5px 5px 0;               /* Margen: arriba, derecha, abajo, izquierda */
+    cursor: pointer;                     /* Manito al pasar el mouse */
+}
+
+/* Estilo de la tabla de materiales */
+table {
+    width: 100%;                         /* Ancho completo */
+    border-collapse: collapse;           /* Bordes juntos */
+    margin-top: 20px;                    /* Margen arriba */
+}
+
+/* Estilo de las celdas de la tabla */
+th, td {
+    border: 1px solid #ddd;              /* Borde gris claro */
+    padding: 8px;                        /* Relleno interno */
+    text-align: left;                    /* Texto alineado a la izquierda */
+}
+
+/* Color de fondo del encabezado de la tabla */
+th {
+    background: #f4f4f4;                 /* Gris muy claro */
+}
+
+/* Color para mensajes de error */
+.error {
+    color: red;                          /* Texto rojo */
+}
+
+/* Color para mensajes de éxito */
+.success {
+    color: green;                        /* Texto verde */
+}

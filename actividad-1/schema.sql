@@ -1,0 +1,6 @@
+CREATE TABLE materiales (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) UNIQUE NOT NULL,
+    cantidad DECIMAL(10,2) NOT NULL DEFAULT 0,
+    unidad VARCHAR(10) NOT NULL
+);

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestión de Stock</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h1>Gestión de Stock - Reciclaje</h1>
+
+  <h3>Agregar Material Nuevo</h3>
+  <div class="form-group">
+    <input type="text" id="nombre" placeholder="Nombre del material">
+    <input type="number" id="cantidad" placeholder="Cantidad inicial" step="0.01">
+    <select id="unidad">
+      <option value="kg">kg</option>
+      <option value="unidades">unidades</option>
+      <option value="m3">m3</option>
+    </select>
+    <button onclick="agregarMaterial()">Agregar</button>
+  </div>
+
+  <h3>Ingreso / Egreso de Materiales</h3>
+  <div class="form-group">
+    <input type="text" id="nombreOperacion" placeholder="Nombre del material">
+    <input type="number" id="cantidadOperacion" placeholder="Cantidad" step="0.01">
+    <button onclick="comprar()">Comprar</button>
+    <button onclick="vender()">Vender</button>
+  </div>
+
+  <div id="mensaje"></div>
+
+  <h3>Stock Actual</h3>
+  <table>
+    <thead>
+      <tr><th>Nombre</th><th>Cantidad</th><th>Unidad</th></tr>
+    </thead>
+    <tbody id="tablaMateriales"></tbody>
+  </table>
+
+  <script src="js/app.js"></script>
+  
+</body>
+</html>
