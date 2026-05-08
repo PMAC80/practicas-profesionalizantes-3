@@ -1,5 +1,4 @@
-import { DatabaseError } from 'sequelize';
-import { createServer } from 'node:http';
+﻿import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { URL } from 'node:url';
@@ -233,7 +232,7 @@ async function request_dispatcher(request, response)
     }
 }
 //-------------------------------------------------------------------------------
-//iniciar el servidor
+//          iniciar el servidor
 //-------------------------------------------------------------------------------
 
 function start()
