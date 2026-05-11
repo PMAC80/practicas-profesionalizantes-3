@@ -7,77 +7,24 @@
 </head>
 
 <body>
-
-    <h1>Autenticación</h1>
-
-    <hr>
-
     <h2>Login</h2>
-
     <form action="/api/login" method="post">
-
-        <label>Usuario:</label>
-        <br>
-
-        <input 
-            type="text"
-            name="username"
-            required
-        >
-
-        <br><br>
-
-        <label>Password:</label>
-        <br>
-
-        <input 
-            type="password"
-            name="password"
-            required
-        >
-
-        <br><br>
-
-        <button type="submit">
-            Ingresar
-        </button>
-
+        <label>Usuario:</label><br>
+        <input type="text" name="username" required><br>
+        <label>Password:</label><br>
+        <input type="password" name="password" required><br><br>
+        <button type="submit">Ingresar</button>
     </form>
-
     <hr>
-
     <h2>Registro</h2>
-
     <form action="/api/register" method="post">
-
-        <label>Nuevo usuario:</label>
+        <label>Nuevo usuario:</label> <br>
+        <input type="text" name="username" required>
         <br>
-
-        <input 
-            type="text"
-            name="username"
-            required
-        >
-
+        <label>Password:</label><br>
+        <input type="password" name="password" required>
         <br><br>
-
-        <label>Password:</label>
-        <br>
-
-        <input 
-            type="password"
-            name="password"
-            required
-        >
-
-        <br><br>
-
-        <button type="submit">
-            Registrar
-        </button>
-
+        <button type="submit">Registrar</button>
     </form>
-
 </body>
-
 </html>
