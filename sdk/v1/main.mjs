@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { URL } from 'node:url';
-import  sqlite3  from 'sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 
 //-------------------------------------------------------------------------------
 // trabajo con el config.json
@@ -46,61 +46,31 @@ let config = load_config();
 // trabajo con base de datos
 //-------------------------------------------------------------------------------
 
-function connect_db( path ) 
-{
-  const dbPath = resolve(path);
-
-  const db = new sqlite3.Database(dbPath, (err) => 
-    {
-    if (err) 
-      {
-      throw new Error(`Error al conectar a la base de datos: ${err.message}`);
-      }
-    });
-
-  return db;
+function connect_db(path) {
+    const dbPath = resolve(path);
+    try {
+        const db = new DatabaseSync(dbPath);
+        return db;
+    } catch (err) {
+        throw new Error("Error al conectar a la base de datos: " + err.message);
+    }
 }
 
-const db = connect_db( config.database.path );
+const db = connect_db(config.database.path);
 
 
-export function insertarUsuario(db) 
-{
-  const sql = `
-    INSERT INTO user (username, password)
-    VALUES (?, ?)
-  `;
 
-  const username = 'usuario_demo';
-  const password = 'password123';
-
-  return new Promise((resolve, reject) => 
-    {
-      db.run(sql, [username, password], function (err) {
-        if (err) 
-          {
-          reject(err);
-          return;
-          }
-
-        resolve({
-        id: this.lastID,
-        username,
-        password
-        });
-      });
-    });
+// Nueva función createUser basada en el código del profesor
+function createUser(db, username, password) {
+    const sql = "INSERT INTO user (username, password) VALUES (?, ?) RETURNING id";
+    try {
+        const stmt = db.prepare(sql);
+        const row = stmt.get(username, password);
+        return { id: row.id, username, password };
+    } catch (err) {
+        throw err;
+    }
 }
-
-insertarUsuario(db)
-  .then((resultado) => 
-    {
-    console.log('Usuario insertado:', resultado);
-    })
-  .catch((error) => 
-    {
-    console.error('Error al insertar:', error.message);
-    });
 
 //-------------------------------------------------------------------------------
 // logica de negocio
@@ -132,23 +102,15 @@ function login( input )
 	return output;
 }
 
-function register( username, password )
-{
-	const sql = `INSERT INTO user (username, password) VALUES (?, ?)`;
-
-	return new Promise((resolve, reject) => 
-  { 
-		db.run(sql, [username, password], function (err) {
-			if (err) 
-        {
-				resolve({ status: false, description: err.message });
-			  } 
-      else 
-        {
-				resolve({ status: true, result: username, description: 'Usuario registrado con éxito' });
-		  	}
-		});
-	});
+function register(username, password) {
+    const sql = "INSERT INTO user (username, password) VALUES (?, ?) RETURNING id";
+    try {
+        const stmt = db.prepare(sql);
+        const row = stmt.get(username, password);
+        return { status: true, id: row.id, username, description: 'Usuario registrado con éxito' };
+    } catch (err) {
+        return { status: false, description: err.message };
+    }
 }
 
 async function login_handler(request, response)
@@ -179,32 +141,22 @@ function default_handler(request, response)
     }
 }
 
-function register_handler(request, response)
-{
-	if (request.method === 'POST') 
-    {
-      let body = '';
-
-      request.on('data', chunk => 
-      {
-        body += chunk.toString();
-      });
-
-      request.on('end', async () => 
-      {
-        const inputParams = new URLSearchParams(body);
-        const input = Object.fromEntries(inputParams);
-
-        const output = await register(input.username, input.password);
-
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify(output));
-      });
-    } 
-	else 
-    {
-      response.writeHead(405);
-      response.end('Método no permitido. Utilice POST.');
+function register_handler(request, response) {
+    if (request.method === 'POST') {
+        let body = '';
+        request.on('data', chunk => {
+            body += chunk.toString();
+        });
+        request.on('end', () => {
+            const inputParams = new URLSearchParams(body);
+            const input = Object.fromEntries(inputParams);
+            const output = register(input.username, input.password);
+            response.writeHead(200, { 'Content-Type': 'application/json' });
+            response.end(JSON.stringify(output));
+        });
+    } else {
+        response.writeHead(405);
+        response.end('Método no permitido. Utilice POST.');
     }
 }
 

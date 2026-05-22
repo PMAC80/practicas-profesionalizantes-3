@@ -10,6 +10,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "sqlite3": "^6.0.1"
+  
   }
 }
