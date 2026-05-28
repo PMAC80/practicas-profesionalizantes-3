@@ -1,8 +1,8 @@
 ﻿import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { URL } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
 
 //-------------------------------------------------------------------------------
 // trabajo con el config.json
@@ -11,14 +11,18 @@ import { DatabaseSync } from 'node:sqlite';
 function default_config() 
 {
     const config = 
-      {
-          server: 
-          {
-              ip: '127.0.0.1',
-              port: 3000,
-              default_path: './default.html'
-          }
-      };
+    {
+        server: 
+            {
+            ip: '127.0.0.1',
+            port: 3000,
+            default_path: './default.html'
+            },
+        database: 
+            {
+            path: './db.sqlite'
+            }
+    };
 
     return config;
 }
@@ -46,28 +50,40 @@ let config = load_config();
 // trabajo con base de datos
 //-------------------------------------------------------------------------------
 
-function connect_db(path) {
+function connect_db(path) 
+{
     const dbPath = resolve(path);
-    try {
+    try 
+    {
         const db = new DatabaseSync(dbPath);
         return db;
-    } catch (err) {
+    } 
+    catch (err) 
+    {
         throw new Error("Error al conectar a la base de datos: " + err.message);
     }
 }
 
 const db = connect_db(config.database.path);
 
-
-
-// Nueva función createUser basada en el código del profesor
-function createUser(db, username, password) {
+function createUser(db, username, password) 
+{
     const sql = "INSERT INTO user (username, password) VALUES (?, ?) RETURNING id";
-    try {
+    try 
+    {
         const stmt = db.prepare(sql);
         const row = stmt.get(username, password);
-        return { id: row.id, username, password };
-    } catch (err) {
+        const result = 
+        {
+            id: row.id,
+            username: username,
+            password: password
+        };
+        
+        return result;
+    } 
+    catch (err) 
+    {
         throw err;
     }
 }
@@ -75,6 +91,13 @@ function createUser(db, username, password) {
 //-------------------------------------------------------------------------------
 // logica de negocio
 //-------------------------------------------------------------------------------
+
+function show_message_handler(request, response)
+{
+    console.log("Petición recibida: Mostrando mensaje en el servidor!");
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ message: "Mensaje procesado" }));
+}
 
 function login( input )
 {
@@ -102,16 +125,6 @@ function login( input )
 	return output;
 }
 
-function register(username, password) {
-    const sql = "INSERT INTO user (username, password) VALUES (?, ?) RETURNING id";
-    try {
-        const stmt = db.prepare(sql);
-        const row = stmt.get(username, password);
-        return { status: true, id: row.id, username, description: 'Usuario registrado con éxito' };
-    } catch (err) {
-        return { status: false, description: err.message };
-    }
-}
 
 async function login_handler(request, response)
 {
@@ -129,7 +142,7 @@ async function login_handler(request, response)
 function default_handler(request, response)
 {
 	try 
-	  {
+	{
         const html = readFileSync(config.server.default_path, 'utf-8');
         response.writeHead(200, { 'Content-Type': 'text/html' });
         response.end(html);
@@ -141,7 +154,8 @@ function default_handler(request, response)
     }
 }
 
-function register_handler(request, response) {
+function register_handler(request, response) 
+{
     if (request.method === 'POST') {
         let body = '';
         request.on('data', chunk => {
@@ -150,9 +164,14 @@ function register_handler(request, response) {
         request.on('end', () => {
             const inputParams = new URLSearchParams(body);
             const input = Object.fromEntries(inputParams);
-            const output = register(input.username, input.password);
-            response.writeHead(200, { 'Content-Type': 'application/json' });
-            response.end(JSON.stringify(output));
+            try {
+                const user = createUser(db, input.username, input.password);
+                response.writeHead(200, { 'Content-Type': 'application/json' });
+                response.end(JSON.stringify({ status: true, ...user, description: 'Usuario registrado con éxito' }));
+            } catch (err) {
+                response.writeHead(200, { 'Content-Type': 'application/json' });
+                response.end(JSON.stringify({ status: false, description: err.message }));
+            }
         });
     } else {
         response.writeHead(405);
@@ -164,24 +183,25 @@ let router = new Map();
 router.set('/', default_handler )
 router.set('/login', login_handler );
 router.set('/register', register_handler );
+router.set('/show-message', show_message_handler );
 
 
 async function request_dispatcher(request, response)
 {
 	const url = new URL(request.url, 'http://' + config.server.ip);
-  const path = url.pathname;
+    const path = url.pathname;
 
-  const handler = router.get(path);
+    const handler = router.get(path);
 
-  if (handler)
-    {
-        return await handler(request, response);
-    }
-  else
-    {
-        response.writeHead(404);
-        response.end('Método no encontrado');
-    }
+    if (handler)
+        {
+            return await handler(request, response);
+        }
+    else
+        {
+            response.writeHead(404);
+            response.end('Método no encontrado');
+        }
 }
 //-------------------------------------------------------------------------------
 //          iniciar el servidor
