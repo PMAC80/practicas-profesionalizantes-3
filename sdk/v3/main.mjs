@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { URL } from 'node:url';
+import crypto from 'node:crypto';
 
 function default_config() 
 {
@@ -68,19 +69,26 @@ class UserSession
 
 }
 
+function hashPassword(password)
+{
+    return crypto
+        .createHash('sha256')
+        .update(password)
+        .digest('hex');
+}
+
 
 function authenticate( username, password )
 {
-    //Debería ir a la base de datos y buscar si existe (1) registro  username/password coincidente
-    //Si es verdadero entonces significa que estoy autenticado, sino no.
-
+    
     const sql = "SELECT count(*) as total FROM `user` WHERE username=? AND password=?";
 
     try 
     {
+        const passwordHash = hashPassword(password);
+
         const stmt = db.prepare(sql);
-        const row = stmt.get(username, password);
-            
+        const row = stmt.get(username, passwordHash);            
         return (row.total === 1);
     } 
     catch (err) 
@@ -105,7 +113,7 @@ function authorize( username, endpointPath )
     try {
         const stmt = db.prepare(sql);
         // Pasamos los parámetros en el orden de los signos de interrogación
-        const row = stmt.get(username, path);
+        const row = stmt.get(username, endpointPath);
 
         // Si el conteo es mayor a 0, tiene permiso
         return row.total > 0;
@@ -115,6 +123,7 @@ function authorize( username, endpointPath )
     }
 }
 
+
 function login( username, password )
 {
     
@@ -122,33 +131,30 @@ function login( username, password )
 
     if ( isAuthenticated )
     {
-        let havePreviousSession = userSessions.get(username);
+    let havePreviousSession = userSessions.get(username);
 
-        if ( havePreviousSession != null )
+    if ( havePreviousSession == null )
         {
-            //Significa que está ingresando por primera vez. Entonces, creo y persisto el objeto de sesión
             let newSession = new UserSession();
             newSession.status = 'enabled';
-            userSessions.set(username, newSession );
+
+            userSessions.set(username, newSession);
+
             return newSession;
         }
+    else
+        {
+            if ( havePreviousSession.status == 'disabled' )
+            {
+                havePreviousSession.status = 'enabled';
+            }
+
+            return havePreviousSession;
+        }    }
         else
         {
-            //Significa que ya ingresó en algún momento y tiene ya un objeto de sesión creado y guardado en el mapa.
-            let previusSession = userSessions.get(username);
-
-            if ( previusSession.status == 'disabled')
-            {
-                previusSession.status = 'enabled';
-            }
-    
-            return previusSession;
+            return null;
         }
-    }
-    else
-    {
-        return null;
-    }
 
     //El retorno de esta función está representando si se devuelve o no un objeto de sesión.
 }
@@ -171,16 +177,15 @@ async function createUser(db, username, password)
 
     try 
     {
-        const stmt = db.prepare(sql);
-        const row = stmt.get(username, password);
+        const passwordHash = hashPassword(password);
 
-        const result = 
-        {
-            id: row.id,
-            username: username,
-            password: password
-        };
-        
+        const stmt = db.prepare(sql);
+        const row = stmt.get(username, passwordHash);
+    const result =
+    {
+        id: row.id,
+        username: username
+    };        
         return result;
     } 
     catch (err) 
@@ -259,12 +264,15 @@ async function register_handler(request, response)
 
     try 
     {
-        const output = await createUser(db, 'test', '123456789');
-
+    const output = await createUser(
+        db,
+        input.username,
+        input.password
+    );
         response.writeHead(200, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify(output));
     }
-    catch (err)
+    catch (err)Hey, Cortana. Hey, Cortana. Hey, Cortana. Is another thing over here. 
     {
         response.writeHead(500);
         response.end(JSON.stringify({ error: err.message }));
