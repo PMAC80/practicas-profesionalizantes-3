@@ -1,40 +1,97 @@
 <!DOCTYPE html>
 <html lang="es">
-	<head>
-		<meta charset="UTF-8">
-		<title>Login</title>
-	</head>
-	<body>
-		<h1>Registro de usuarios</h1>
-		<form action="/register" method="get">
-			<label>Usuario:</label>
-			<input name="username" required><br>
-			<label>Password:</label>
-			<input type="password" name="password" required><br>
-			<button type="submit">Crear usuario</button>
-		</form>
+<head>
+	<meta charset="UTF-8">
+	<title>Prácticas Profesionalizantes III</title>
+</head>
 
-		<button id="btnMsg">Mostrar mensaje en el servidor</button>
-	</body>
+<body>
 
-	<script>
+	<h1>Registro de usuarios</h1>
 
-	function onBtnMsgOnClick()
-	{
-		console.log("Enviando petición al servidor...");
+	<form action="/register" method="get">
+		<label>Usuario:</label>
+		<input name="username" required>
+		<br>
 
-		fetch( "/showMessage");
-	}
+		<label>Password:</label>
+		<input type="password" name="password" required>
+		<br>
 
-	function main()
-	{
-		btnMsg.onclick = onBtnMsgOnClick;		
-	}
+		<button type="submit">Crear usuario</button>
+	</form>
 
-	window.onload = main;
+	<br>
 
-	</script>
+	<button id="btnMsg">
+		Mostrar mensaje en el servidor
+	</button>
+
+	<hr>
+
+	<h2>Prueba de Endpoints</h2>
+
+	<button id="btnPrint">PRINT</button>
+	<button id="btnLog">LOG</button>
+	<button id="btnHelp">HELP</button>
+
+	<br><br>
+
+	<button id="btnHello">SAY HELLO</button>
+	<button id="btnBye">SAY BYE</button>
+
+</body>
+
+<script>
+
+function onBtnMsgOnClick()
+{
+	console.log("Enviando petición al servidor...");
+	fetch("/showMessage");
+}
+
+function onBtnPrintOnClick()
+{
+	console.log("CLICK PRINT");
+	fetch("/print");
+}
+
+function onBtnLogOnClick()
+{
+	console.log("CLICK LOG");
+	fetch("/log");
+}
+
+function onBtnHelpOnClick()
+{
+	console.log("CLICK help");
+	fetch("/help");
+}
+
+function onBtnHelloOnClick()
+{
+	console.log("CLICK sayHello");
+	fetch("/sayHello");
+}
+
+function onBtnByeOnClick()
+{
+	console.log("CLICK sayBye");
+	fetch("/sayBye");
+}
+
+function main()
+{
+	btnMsg.onclick = onBtnMsgOnClick;
+	btnPrint.onclick = onBtnPrintOnClick;
+	btnLog.onclick = onBtnLogOnClick;
+	btnHelp.onclick = onBtnHelpOnClick;
+	btnHello.onclick = onBtnHelloOnClick;
+	btnBye.onclick = onBtnByeOnClick;
+}
+
+window.onload = main;
+
+</script>
+
 </html>
-
-
-

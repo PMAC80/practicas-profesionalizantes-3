@@ -114,7 +114,7 @@ function authorize( username, endpointPath )
         const stmt = db.prepare(sql);
         // Pasamos los parámetros en el orden de los signos de interrogación
         const row = stmt.get(username, endpointPath);
-
+        console.log(row);
         // Si el conteo es mayor a 0, tiene permiso
         return row.total > 0;
     } catch (err) {
@@ -181,11 +181,11 @@ async function createUser(db, username, password)
 
         const stmt = db.prepare(sql);
         const row = stmt.get(username, passwordHash);
-    const result =
-    {
-        id: row.id,
-        username: username
-    };        
+        const result =
+        {
+            id: row.id,
+            username: username
+        };        
         return result;
     } 
     catch (err) 
@@ -272,7 +272,7 @@ async function register_handler(request, response)
         response.writeHead(200, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify(output));
     }
-    catch (err)Hey, Cortana. Hey, Cortana. Hey, Cortana. Is another thing over here. 
+    catch (err)
     {
         response.writeHead(500);
         response.end(JSON.stringify({ error: err.message }));
@@ -286,6 +286,84 @@ function show_message_handler(request, response)
     response.end(JSON.stringify({ message: "Mensaje procesado" }));
 }
 
+function log_handler(request, response)
+{
+    const permitido = authorize("admin", "log");
+
+    if (permitido)
+    {
+        console.log("LOG permitido");
+        response.end("LOG permitido");
+    }
+    else
+    {
+        console.log("LOG denegado");
+        response.end("LOG denegado");
+    }
+}
+function sayHello_handler(request, response)
+{
+    const permitido = authorize("admin", "sayHello");
+
+    if (permitido)
+    {
+        console.log("SAYHELLO permitido");
+        response.end("SAYHELLO permitido");
+    }
+    else
+    {
+        console.log("SAYHELLO denegado");
+        response.end("SAYHELLO denegado");
+    }
+}
+
+function sayBye_handler(request, response)
+{
+    const permitido = authorize("admin", "sayBye");
+
+    if (permitido)
+    {
+        console.log("SAYBYE permitido");
+        response.end("SAYBYE permitido");
+    }
+    else
+    {
+        console.log("SAYBYE denegado");
+        response.end("SAYBYE denegado");
+    }
+}
+function print_handler(request, response)
+{
+    const permitido = authorize("admin", "print");
+
+    if (permitido)
+    {
+        console.log("PRINT permitido");
+        response.end("PRINT permitido");
+    }
+    else
+    {
+        console.log("PRINT denegado");
+        response.end("PRINT denegado");
+    }
+}
+function help_handler(request, response)
+{
+    const permitido = authorize("admin", "help");
+
+    if (permitido)
+    {
+        console.log("HELP permitido");
+        response.end("HELP permitido");
+    }
+    else
+    {
+        console.log("HELP denegado");
+        response.end("HELP denegado");
+    }
+}
+
+
 // Ruteo
 let router = new Map();
 router.set('/', default_handler);
@@ -293,6 +371,11 @@ router.set('/login', login_handler);
 
 router.set('/register', register_handler);
 router.set('/showMessage', show_message_handler);
+router.set('/print', print_handler);
+router.set('/log', log_handler);
+router.set('/help', help_handler);
+router.set('/sayHello', sayHello_handler);
+router.set('/sayBye', sayBye_handler);
 
 async function request_dispatcher(request, response)
 {
