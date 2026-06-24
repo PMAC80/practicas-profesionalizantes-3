@@ -211,16 +211,15 @@ async function login_handler(request, response)
             body += chunk.toString();
         });
 
-        request.on('end', async () => 
+        request.on('end', async () =>
         {
-            try 
+            try
             {
-                // 3. Convertimos el string a objeto (asumiendo que envían JSON)
-                const input = JSON.parse(body);
-
-                // 4. Procesamos el login
-                const output = login(input.username, input.password); //El resultado es nulo o un objeto de sesión
-
+                // Leer credenciales desde headers HTTP
+                const username = request.headers["x-user-id"];
+                const apiKey = request.headers["x-api-key"];
+                
+                const output = login(username, apiKey);
                 response.writeHead(200, { 'Content-Type': 'application/json' });
                 console.log("OUTPUT:", output);
                 response.end(JSON.stringify(output));
@@ -244,25 +243,30 @@ async function login_handler(request, response)
 
 async function register_handler(request, response)
 {
-    //Caso GET
-    const url = new URL(request.url, 'http://' + config.server.ip);
-    const input = Object.fromEntries(url.searchParams);
-
-    try 
-    {
-    const output = await createUser(
-        db,
-        input.username,
-        input.password
-    );
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify(output));
-    }
-    catch (err)
-    {
-        response.writeHead(500);
-        response.end(JSON.stringify({ error: err.message }));
-    }
+    let body = '';
+    
+    request.on('data', chunk => {
+        body += chunk.toString();
+    });
+    
+    request.on('end', async () => {
+        // Parsear datos del formulario (application/x-www-form-urlencoded)
+        const params = new URLSearchParams(body);
+        const username = params.get('username');
+        const password = params.get('password');
+        
+        try 
+        {
+            const output = await createUser(db, username, password);
+            response.writeHead(200, { 'Content-Type': 'application/json' });
+            response.end(JSON.stringify(output));
+        }
+        catch (err)
+        {
+            response.writeHead(500);
+            response.end(JSON.stringify({ error: err.message }));
+        }
+    });
 }
 
 function show_message_handler(request, response)
@@ -272,85 +276,100 @@ function show_message_handler(request, response)
     response.end(JSON.stringify({ message: "Mensaje procesado" }));
 }
 
-function log_handler(request, response)
+function print_handler(request, response)
 {
-    const permitido = authorize("admin", "log");
-
+    const permitido = authorize(request.headers["x-user-id"], "print");
     if (permitido)
     {
-        console.log("LOG permitido");
-        response.end("LOG permitido");
+        console.log("PRINT permitido");
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ success: true, message: "PRINT permitido" }));
     }
     else
     {
-        console.log("LOG denegado");
-        response.end("LOG denegado");
+        console.log("PRINT denegado");
+        response.writeHead(401, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ success: false, message: "PRINT denegado" }));
     }
 }
 
-
-function sayHello_handler(request, response)
+function log_handler(request, response)
 {
-    const permitido = authorize("admin", "sayHello");
-
+    const permitido = authorize(request.headers["x-user-id"], "log");
     if (permitido)
     {
-        console.log("SAYHELLO permitido");
-        response.end("SAYHELLO permitido");
+        console.log("LOG permitido");
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ success: true, message: "LOG permitido" }));
     }
     else
     {
-        console.log("SAYHELLO denegado");
-        response.end("SAYHELLO denegado");
+    console.log("PRINT denegado");
+    response.writeHead(401, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ 
+        exception: "Unauthorized", 
+        detail: ["Acceso denegado al endpoint"] 
+}));
+    }
+}
+
+function help_handler(request, response)
+{
+    const permitido = authorize(request.headers["x-user-id"], "help");
+    if (permitido)
+    {
+        console.log("HELP permitido");
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ success: true, message: "HELP permitido" }));
+    }
+    else
+    {
+    console.log("PRINT denegado");
+    response.writeHead(401, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ 
+        exception: "Unauthorized", 
+        detail: ["Acceso denegado al endpoint"] 
+}));    }
+}
+
+function sayHello_handler(request, response)
+{
+    const permitido = authorize(request.headers["x-user-id"], "sayHello");
+    if (permitido)
+    {
+        console.log("SAYHELLO permitido");
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ success: true, message: "SAYHELLO permitido" }));
+    }
+    else
+    {
+        console.log("PRINT denegado");
+    response.writeHead(401, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ 
+    exception: "Unauthorized", 
+    detail: ["Acceso denegado al endpoint"] 
+}));
     }
 }
 
 function sayBye_handler(request, response)
 {
-    const permitido = authorize("admin", "sayBye");
-
+    const permitido = authorize(request.headers["x-user-id"], "sayBye");
     if (permitido)
     {
         console.log("SAYBYE permitido");
-        response.end("SAYBYE permitido");
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ success: true, message: "SAYBYE permitido" }));
     }
     else
     {
-        console.log("SAYBYE denegado");
-        response.end("SAYBYE denegado");
-    }
+    console.log("PRINT denegado");
+    response.writeHead(401, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ 
+        exception: "Unauthorized", 
+        detail: ["Acceso denegado al endpoint"] 
+}));    }
 }
-function print_handler(request, response)
-{
-    const permitido = authorize("admin", "print");
-
-    if (permitido)
-    {
-        console.log("PRINT permitido");
-        response.end("PRINT permitido");
-    }
-    else
-    {
-        console.log("PRINT denegado");
-        response.end("PRINT denegado");
-    }
-}
-function help_handler(request, response)
-{
-    const permitido = authorize("admin", "help");
-
-    if (permitido)
-    {
-        console.log("HELP permitido");
-        response.end("HELP permitido");
-    }
-    else
-    {
-        console.log("HELP denegado");
-        response.end("HELP denegado");
-    }
-}
-
 
 // Ruteo
 let router = new Map();
@@ -367,10 +386,11 @@ router.set('/sayBye', sayBye_handler);
 
 async function request_dispatcher(request, response)
 {
-    response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id, x-api-key');    
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-
+    response.setHeader('X-API-Version', '1.0');
+    
     if (request.method === 'OPTIONS')
     {
         response.writeHead(204);

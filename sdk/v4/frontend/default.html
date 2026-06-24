@@ -9,8 +9,8 @@
 
 	<h1>Registro de usuarios</h1>
 
-	<form action="http://127.0.0.1:3000/register" method="get">		
-		<label>Usuario:</label>
+    <form action="http://127.0.0.1:3000/register" method="post">		
+        <label>Usuario:</label>
 		<input name="username" required>
 		<br>
 
@@ -51,66 +51,84 @@ function onBtnLoginTestOnClick()
         method: "POST",
         headers:
         {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(
-        {
-			username: "prueba2",
-			password: "1234"        
-		})
+            "x-user-id": "admin",
+            "x-api-key": "1234"
+        }
     })
     .then(response => response.text())
-	.then(data => console.log("RESPUESTA:", data));}
+    .then(data => console.log("RESPUESTA:", data));
+}
 
 function onBtnMsgOnClick()
 {
-	console.log("Enviando petición al servidor...");
-	fetch("http://127.0.0.1:3000/showMessage");
+    console.log("Enviando petición al servidor...");
+    fetch("http://127.0.0.1:3000/showMessage", { method: "POST" });
 }
 
 function onBtnPrintOnClick()
 {
-	console.log("CLICK PRINT");
-	fetch("http://127.0.0.1:3000/print");
+    console.log("CLICK PRINT");
+    fetch("http://127.0.0.1:3000/print",
+    {
+        method: "POST",
+        headers: { "x-user-id": "admin", "x-api-key": "1234" }
+    })
+    .then(response => response.text())
+    .then(data => console.log("RESPUESTA PRINT:", data));
 }
 
 function onBtnLogOnClick()
 {
-	console.log("CLICK LOG");
-	fetch("http://127.0.0.1:3000/log");
+    console.log("CLICK LOG");
+    fetch("http://127.0.0.1:3000/log",
+    {
+        method: "POST",
+        headers: { "x-user-id": "admin", "x-api-key": "1234" }
+    });
 }
 
 function onBtnHelpOnClick()
 {
-	console.log("CLICK help");
-	fetch("http://127.0.0.1:3000/help");
+    console.log("CLICK help");
+    fetch("http://127.0.0.1:3000/help",
+    {
+        method: "POST",
+        headers: { "x-user-id": "admin", "x-api-key": "1234" }
+    });
 }
 
 function onBtnHelloOnClick()
 {
-	console.log("CLICK sayHello");
-	fetch("http://127.0.0.1:3000/sayHello");
+    console.log("CLICK sayHello");
+    fetch("http://127.0.0.1:3000/sayHello",
+    {
+        method: "POST",
+        headers: { "x-user-id": "admin", "x-api-key": "1234" }
+    })
+    .then(response => response.text())
+    .then(data => console.log("RESPUESTA SAYHELLO:", data));
 }
 
 function onBtnByeOnClick()
 {
-	console.log("CLICK sayBye");
-	fetch("http://127.0.0.1:3000/sayBye");
+    console.log("CLICK sayBye");
+    fetch("http://127.0.0.1:3000/sayBye",
+    {
+        method: "POST",
+        headers: { "x-user-id": "admin", "x-api-key": "1234" }
+    });
 }
 
 function main()
 {
-	btnMsg.onclick = onBtnMsgOnClick;
-	btnPrint.onclick = onBtnPrintOnClick;
-	btnLog.onclick = onBtnLogOnClick;
-	btnHelp.onclick = onBtnHelpOnClick;
-	btnHello.onclick = onBtnHelloOnClick;
-	btnBye.onclick = onBtnByeOnClick;
+    btnMsg.onclick = onBtnMsgOnClick;
+    btnPrint.onclick = onBtnPrintOnClick;
+    btnLog.onclick = onBtnLogOnClick;
+    btnHelp.onclick = onBtnHelpOnClick;
+    btnHello.onclick = onBtnHelloOnClick;
+    btnBye.onclick = onBtnByeOnClick;
 }
 
-
 window.onload = main;
-
 </script>
-
 </html>
