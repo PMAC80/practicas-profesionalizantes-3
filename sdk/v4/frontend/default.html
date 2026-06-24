@@ -9,7 +9,7 @@
 
 	<h1>Registro de usuarios</h1>
 
-	<form action="/register" method="get">
+	<form action="http://127.0.0.1:3000/register" method="get">		
 		<label>Usuario:</label>
 		<input name="username" required>
 		<br>
@@ -26,7 +26,8 @@
 	<button id="btnMsg">
 		Mostrar mensaje en el servidor
 	</button>
-
+	
+	<button onclick="onBtnLoginTestOnClick()">Login Test</button>
 	<hr>
 
 	<h2>Prueba de Endpoints</h2>
@@ -43,6 +44,23 @@
 </body>
 
 <script>
+function onBtnLoginTestOnClick()
+{
+    fetch("http://127.0.0.1:3000/login",
+    {
+        method: "POST",
+        headers:
+        {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(
+        {
+			username: "prueba2",
+			password: "1234"        
+		})
+    })
+    .then(response => response.text())
+	.then(data => console.log("RESPUESTA:", data));}
 
 function onBtnMsgOnClick()
 {
@@ -89,6 +107,7 @@ function main()
 	btnHello.onclick = onBtnHelloOnClick;
 	btnBye.onclick = onBtnByeOnClick;
 }
+
 
 window.onload = main;
 

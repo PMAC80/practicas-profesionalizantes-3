@@ -80,7 +80,7 @@ function hashPassword(password)
 
 function authenticate( username, password )
 {
-    
+    console.log("AUTH:", username, password);
     const sql = "SELECT count(*) as total FROM `user` WHERE username=? AND password=?";
 
     try 
@@ -126,7 +126,7 @@ function authorize( username, endpointPath )
 
 function login( username, password )
 {
-    
+    console.log(username, password);
     let isAuthenticated = authenticate(username, password);
 
     if ( isAuthenticated )
@@ -222,6 +222,7 @@ async function login_handler(request, response)
                 const output = login(input.username, input.password); //El resultado es nulo o un objeto de sesión
 
                 response.writeHead(200, { 'Content-Type': 'application/json' });
+                console.log("OUTPUT:", output);
                 response.end(JSON.stringify(output));
             } 
             catch (err) 
@@ -286,6 +287,8 @@ function log_handler(request, response)
         response.end("LOG denegado");
     }
 }
+
+
 function sayHello_handler(request, response)
 {
     const permitido = authorize("admin", "sayHello");
@@ -364,6 +367,7 @@ router.set('/sayBye', sayBye_handler);
 
 async function request_dispatcher(request, response)
 {
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 
