@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prácticas Profesionalizantes III - v5</title>
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="./assets/icons/font-awesome-4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="./assets/css/w3pro-4.13.css">
+  <link rel="stylesheet" href="./assets/css/w3-theme.css">
+  <link rel="stylesheet" href="./assets/css/admin-styles.css">
+  <link rel="stylesheet" href="./assets/css/scrollbar.css">
+</head>
+
+<body class="w3-light-grey">
+</body>
+
+<script>
+
+// ================================================================
+// PUNTO 1: RPCWebAPIFetch
+// ================================================================
+async function RPCWebAPIFetch(name, content)
+{
+    const userId = sessionStorage.getItem('x-user-id') || '';
+    const apiKey = sessionStorage.getItem('x-api-key') || '';
+
+    const response = await fetch(`http://127.0.0.1:3000/${name}`,
+    {
+        method: "POST",
+        headers: 
+        {
+            "Content-Type": "application/json",
+            "x-user-id": userId,
+            "x-api-key": apiKey
+        },
+        body: JSON.stringify(content)
+    });
+
+    if (response.status === 200)
+    {
+        return await response.json();
+    }
+    else if (response.status === 401)
+    {
+        sessionStorage.removeItem('x-user-id');
+        sessionStorage.removeItem('x-api-key');
+        window.location.href = 'login.html'; 
+        throw new Error("Unauthorized");
+    }
+    else
+    {
+        const errorData = await response.json();
+        throw new Error(errorData.exception || "Error desconocido");
+    }
+}
+
+
+// ================================================================
+// PUNTO 2: WEBCOMPONENT - WCApplicationView
+// ================================================================
+class WCApplicationView extends HTMLElement
+{
+    constructor()
+    {
+        super();
+        this.application = null;
+        this.navbar = null;
+        this.sidebar = null;
+        this.content = null;
+        this.contentDiv = null;
+        this.footer = null;
+        this.menuButton = null;
+        this.searchButton = null;
+
+        this.onMenuButtonClick = this.onMenuButtonClick.bind(this);
+        this.onSearchButtonClick = this.onSearchButtonClick.bind(this);
+
+        this.navbar = this.createNavbar();
+        this.sidebar = this.createSidebar();
+        this.content = this.createContent();
+        this.footer = this.createFooter();
+        this.application = this.createApplication();
+    }
+
+    connectedCallback()
+    {
+        this.appendChild(this.application);
+        if (this.menuButton) this.menuButton.addEventListener("click", this.onMenuButtonClick);
+        if (this.searchButton) this.searchButton.addEventListener("click", this.onSearchButtonClick);
+    }
+
+    disconnectedCallback()
+    {
+        if (this.menuButton) this.menuButton.removeEventListener("click", this.onMenuButtonClick);
+        if (this.searchButton) this.searchButton.removeEventListener("click", this.onSearchButtonClick);
+    }
+
+    getContentDiv()
+    {
+        return this.contentDiv;
+    }
+
+    createApplication()
+    {
+        let app = document.createElement("div");
+        app.id = "app";
+
+        let checkbox = document.createElement("input");
+        checkbox.id = "sidebar-control";
+        checkbox.type = "checkbox";
+        checkbox.classList.add("w3-hide");
+
+        app.appendChild(checkbox);
+        app.appendChild(this.navbar);
+        app.appendChild(this.sidebar);
+        this.content.appendChild(this.footer);
+        app.appendChild(this.content);
+
+        return app;
+    }
+
+    createNavbar()
+    {
+        let navbar = document.createElement("div");
+        let flexBar = document.createElement("div");
+
+        navbar.classList.add("w3-top", "w3-card");
+        navbar.style.height = "54px";
+        flexBar.classList.add("w3-flex-bar", "w3-theme", "w3-left-align");
+
+        flexBar.appendChild(this.createLogo());
+        flexBar.appendChild(this.createMenuButton());
+        flexBar.appendChild(this.createSearchContainer());
+        flexBar.appendChild(this.createRightButtons());
+        flexBar.appendChild(this.createUserButton());
+
+        navbar.appendChild(flexBar);
+        return navbar;
+    }
+
+    createSidebar()
+    {
+        let nav = document.createElement("nav");
+        nav.id = "sidebar";
+        nav.classList.add("w3-sidebar", "w3-top", "w3-bottom", "w3-collapse", "w3-white", "w3-border-right", "w3-border-top", "scrollbar");
+        nav.style.zIndex = "3";
+        nav.style.width = "230px";
+        nav.style.height = "auto";
+        nav.style.marginTop = "54px";
+        nav.style.setProperty("border-color", "rgba(0, 0, 0, .1)", "important");
+
+        nav.appendChild(this.createSidebarHeader());
+        nav.appendChild(this.createSidebarMenu());
+
+        return nav;
+    }
+
+    createContent()
+    {
+        let main = document.createElement("div");
+        this.contentDiv = document.createElement("div");
+
+        main.classList.add("w3-main");
+        main.style.marginTop = "54px";
+        this.contentDiv.style.padding = "16px 32px";
+
+        main.appendChild(this.contentDiv);
+        return main;
+    }
+
+    createFooter()
+    {
+        let footer = document.createElement("footer");
+        let spanFooter = document.createElement("span");
+        let spanHeart = document.createElement("span");
+        let footerLink = document.createElement("a");
+        let strongFooter = document.createElement("strong");
+
+        footer.classList.add("w3-padding", "w3-border-top", "w3-center", "w3-white", "w3-margin-top");
+        spanFooter.classList.add("w3-opacity");
+        spanHeart.classList.add("w3-text-red");
+        footerLink.href = "https://w3mix.com";
+        footerLink.target = "_blank";
+        strongFooter.textContent = "W3Mix.com";
+
+        footerLink.appendChild(strongFooter);
+        spanHeart.appendChild(document.createTextNode("♥"));
+        spanFooter.appendChild(document.createTextNode("Powered with "));
+        spanFooter.appendChild(spanHeart);
+        spanFooter.appendChild(document.createTextNode(" by "));
+        spanFooter.appendChild(footerLink);
+        spanFooter.appendChild(document.createTextNode("."));
+        footer.appendChild(spanFooter);
+
+        return footer;
+    }
+
+    createTopButton(iconClass)
+    {
+        let button = document.createElement("button");
+        let icon = document.createElement("i");
+        button.type = "button";
+        button.classList.add("w3-button", "w3-large", "w3-opacity-min");
+        icon.classList.add("fa", iconClass);
+        button.appendChild(icon);
+        return button;
+    }
+
+    createSidebarItem(iconClass, text, href)
+    {
+        let item = document.createElement("a");
+        let icon = document.createElement("i");
+        let label = document.createTextNode("\u00A0 " + text);
+
+        item.href = href;
+        item.classList.add("w3-bar-item", "w3-button", "w3-padding-large", "w3-hover-text-primary");
+
+        icon.classList.add("fa", "fa-fw");
+        iconClass.split(" ").forEach(cls => icon.classList.add(cls));
+
+        item.appendChild(icon);
+        item.appendChild(label);
+        return item;
+    }
+
+    createUserButton()
+    {
+        let button = document.createElement("div");
+        let circle = document.createElement("div");
+        let icon = document.createElement("i");
+
+        button.classList.add("w3-button");
+        circle.classList.add("w3-circle", "w3-center", "w3-text-white", "w3-primary");
+        circle.style.width = "38px";
+        circle.style.height = "38px";
+        icon.classList.add("fa", "fa-fw", "fa-user");
+        icon.style.marginTop = "11px";
+
+        circle.appendChild(icon);
+        button.appendChild(circle);
+        return button;
+    }
+
+    createLogo()
+    {
+        let container = document.createElement("div");
+        let title = document.createElement("h5");
+        let link = document.createElement("a");
+        let img = document.createElement("img");
+
+        container.classList.add("admin-logo", "w3-bar-item", "w3-hide-medium", "w3-hide-small");
+        title.style.lineHeight = "1";
+        title.style.setProperty("margin", "0", "important");
+        title.style.fontWeight = "300";
+        link.href = "./index.html";
+        link.classList.add("w3-button", "w3-bold");
+        img.src = "./assets/admin-logo.png";
+        img.alt = "w3mix";
+        img.classList.add("w3-image");
+        img.width = 26;
+
+        link.appendChild(img);
+        link.appendChild(document.createTextNode("\u00A0 W3Admin"));
+        title.appendChild(link);
+        container.appendChild(title);
+        return container;
+    }
+
+    createMenuButton()
+    {
+        let label = document.createElement("label");
+        let icon = document.createElement("i");
+
+        label.htmlFor = "sidebar-control";
+        label.classList.add("w3-button", "w3-large", "w3-opacity-min");
+        icon.classList.add("fa", "fa-bars");
+
+        label.appendChild(icon);
+        this.menuButton = label;
+        return label;
+    }
+
+    createSearchContainer()
+    {
+        let container = document.createElement("div");
+        let trigger = document.createElement("div");
+        let icon = document.createElement("i");
+
+        container.style.width = "40%";
+        trigger.classList.add("w3-display-right", "w3-padding-small", "w3-margin-right");
+        icon.classList.add("fa", "fa-search", "w3-opacity-max");
+
+        trigger.appendChild(icon);
+        container.appendChild(trigger);
+        this.searchButton = trigger;
+        return container;
+    }
+
+    createRightButtons()
+    {
+        let container = document.createElement("div");
+        container.classList.add("w3-right");
+        container.appendChild(this.createTopButton("fa-envelope-open"));
+        container.appendChild(this.createTopButton("fa-bell"));
+        return container;
+    }
+
+    createSidebarHeader()
+    {
+        let header = document.createElement("div");
+        let label = document.createElement("label");
+        let icon = document.createElement("i");
+        let title = document.createElement("h5");
+        let link = document.createElement("a");
+        let img = document.createElement("img");
+
+        header.classList.add("w3-bar-item", "w3-border-bottom", "w3-hide-large");
+        header.style.padding = "6px 0";
+
+        label.htmlFor = "sidebar-control";
+        label.classList.add("w3-left", "w3-button", "w3-large", "w3-opacity-min");
+        label.style.setProperty("background", "white", "important");
+        icon.classList.add("fa", "fa-bars");
+
+        title.style.lineHeight = "1";
+        title.style.setProperty("margin", "0", "important");
+        title.style.fontWeight = "300";
+        link.href = "./index.html";
+        link.classList.add("w3-button");
+        link.style.setProperty("background", "white", "important");
+        img.src = "./assets/admin-logo.png";
+        img.alt = "w3mix";
+        img.classList.add("w3-image");
+
+        label.appendChild(icon);
+        link.appendChild(img);
+        link.appendChild(document.createTextNode("\u00A0 W3Admin"));
+        title.appendChild(link);
+        header.appendChild(label);
+        header.appendChild(title);
+        return header;
+    }
+
+    createSidebarMenu()
+    {
+        let menu = document.createElement("div");
+        let navTitle = document.createElement("span");
+
+        menu.classList.add("w3-bar-block");
+        navTitle.classList.add("w3-bar-item", "w3-padding", "w3-small", "w3-opacity");
+        navTitle.style.marginTop = "8px";
+        navTitle.textContent = " MAIN NAVIGATION ";
+
+        menu.appendChild(navTitle);
+        menu.appendChild(this.createSidebarItem("fa-bar-chart", "Dashboard", "./index.html"));
+        menu.appendChild(this.createSidebarItem("fa-lock", "Login", "./login.html"));
+        menu.appendChild(this.createSidebarItem("fa-sign-in", "Register", "./register.html"));
+
+        return menu;
+    }
+
+    onMenuButtonClick()
+    {
+        console.log("Click en menú hamburguesa");
+    }
+
+    onSearchButtonClick()
+    {
+        console.log("Click en buscador");
+    }
+}
+
+customElements.define("wc-application-view", WCApplicationView);
+
+
+// ================================================================
+// PUNTO 2: WEBCOMPONENT - WCLoginFormView
+// ================================================================
+class WCLoginFormView extends HTMLElement
+{
+    constructor() { super(); }
+
+    connectedCallback()
+    {
+        this.appendChild(this.createLoginForm());
+
+        let btn = this.querySelector("#btn-signin");
+        let user = this.querySelector("#login-username");
+        let pass = this.querySelector("#login-password");
+
+        btn.addEventListener("click", async () => {
+            try {
+                sessionStorage.setItem('x-user-id', user.value);
+                sessionStorage.setItem('x-api-key', pass.value);
+                
+                const result = await RPCWebAPIFetch("login", {});
+                
+                if (result) {
+                    console.log("Login exitoso:", result);
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error("Error de login:", error.message);
+                alert("Credenciales incorrectas");
+                sessionStorage.removeItem('x-user-id');
+                sessionStorage.removeItem('x-api-key');
+            }
+        });
+    }
+
+    createLoginForm()
+    {
+        let container = document.createElement("div");
+        let wrapper = document.createElement("div");
+        let card = document.createElement("div");
+        let padding = document.createElement("div");
+
+        container.classList.add("w3-padding-32");
+        wrapper.classList.add("w3-auto");
+        wrapper.style.width = "380px";
+        card.classList.add("w3-white", "w3-round", "w3-margin-bottom", "w3-border");
+        padding.classList.add("w3-padding-large");
+
+        padding.appendChild(this.createHeader("SIGN IN"));
+        padding.appendChild(this.createInput("text", "login-username", "Enter Username"));
+        padding.appendChild(this.createInput("password", "login-password", "Enter Password"));
+        padding.appendChild(this.createButton("btn-signin", "Sign In"));
+
+        card.appendChild(padding);
+        wrapper.appendChild(card);
+        container.appendChild(wrapper);
+        return container;
+    }
+
+    createHeader(text)
+    {
+        let header = document.createElement("div");
+        let logo = document.createElement("img");
+        let title = document.createElement("p");
+
+        header.classList.add("w3-center", "w3-padding-16");
+        logo.src = "./assets/admin-logo.png";
+        logo.alt = "w3mix";
+        logo.classList.add("w3-image");
+        title.textContent = text;
+
+        header.appendChild(logo);
+        header.appendChild(title);
+        return header;
+    }
+
+    createInput(type, id, placeholder)
+    {
+        let div = document.createElement("div");
+        let input = document.createElement("input");
+
+        div.classList.add("w3-margin-bottom");
+        input.type = type;
+        input.id = id;
+        input.classList.add("w3-input", "w3-round", "w3-border");
+        input.placeholder = placeholder;
+
+        div.appendChild(input);
+        return div;
+    }
+
+    createButton(id, text)
+    {
+        let button = document.createElement("button");
+        button.type = "button";
+        button.id = id;
+        button.classList.add("w3-button", "w3-round", "w3-margin-bottom", "w3-primary", "w3-block");
+        button.textContent = text;
+        return button;
+    }
+}
+
+customElements.define("wc-login-form-view", WCLoginFormView);
+
+
+// ================================================================
+// PUNTO 2: WEBCOMPONENT - WCRegisterFormView
+// ================================================================
+class WCRegisterFormView extends HTMLElement
+{
+    constructor() { super(); }
+
+    connectedCallback()
+    {
+        this.appendChild(this.createRegisterForm());
+
+        let btn = this.querySelector("#btn-signup");
+        let user = this.querySelector("#reg-username");
+        let pass = this.querySelector("#reg-password");
+
+        btn.addEventListener("click", async () => {
+            try {
+                const result = await RPCWebAPIFetch("register", {
+                    username: user.value,
+                    password: pass.value
+                });
+                
+                console.log("Registro exitoso:", result);
+                alert("Usuario creado. Ahora podés iniciar sesión.");
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error("Error de registro:", error.message);
+                alert("Error al registrar: " + error.message);
+            }
+        });
+    }
+
+    createRegisterForm()
+    {
+        let container = document.createElement("div");
+        let wrapper = document.createElement("div");
+        let card = document.createElement("div");
+        let padding = document.createElement("div");
+
+        container.classList.add("w3-padding-32");
+        wrapper.classList.add("w3-auto");
+        wrapper.style.width = "380px";
+        card.classList.add("w3-white", "w3-round", "w3-margin-bottom", "w3-border");
+        padding.classList.add("w3-padding-large");
+
+        padding.appendChild(this.createHeader("SIGN UP"));
+        padding.appendChild(this.createInput("text", "reg-username", "Enter Your Username"));
+        padding.appendChild(this.createInput("password", "reg-password", "Choose Password"));
+        padding.appendChild(this.createButton("btn-signup", "Sign Up"));
+
+        card.appendChild(padding);
+        wrapper.appendChild(card);
+        container.appendChild(wrapper);
+        return container;
+    }
+
+    createHeader(text)
+    {
+        let header = document.createElement("div");
+        let logo = document.createElement("img");
+        let title = document.createElement("p");
+
+        header.classList.add("w3-center", "w3-padding-16");
+        logo.src = "./assets/admin-logo.png";
+        logo.alt = "w3mix";
+        logo.classList.add("w3-image");
+        title.textContent = text;
+
+        header.appendChild(logo);
+        header.appendChild(title);
+        return header;
+    }
+
+    createInput(type, id, placeholder)
+    {
+        let div = document.createElement("div");
+        let input = document.createElement("input");
+
+        div.classList.add("w3-margin-bottom");
+        input.type = type;
+        input.id = id;
+        input.classList.add("w3-input", "w3-round", "w3-border");
+        input.placeholder = placeholder;
+
+        div.appendChild(input);
+        return div;
+    }
+
+    createButton(id, text)
+    {
+        let button = document.createElement("button");
+        button.type = "button";
+        button.id = id;
+        button.classList.add("w3-button", "w3-round", "w3-margin-bottom", "w3-primary", "w3-block");
+        button.textContent = text;
+        return button;
+    }
+}
+
+customElements.define("wc-register-form-view", WCRegisterFormView);
+
+
+// ================================================================
+// FUNCIÓN MAIN
+// ================================================================
+function main()
+{
+    let app = new WCApplicationView();
+    document.body.appendChild(app);
+
+    let contentDiv = app.getContentDiv();
+    let loginForm = new WCLoginFormView();
+    contentDiv.appendChild(loginForm);
+}
+
+window.onload = main;
+
+</script>
+</html>

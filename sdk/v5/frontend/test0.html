@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<title>Prácticas Profesionalizantes III</title>
+</head>
+
+<body>
+
+	<h1>Registro de usuarios</h1>
+
+    <form action="http://127.0.0.1:3000/register" method="post">		
+        <label>Usuario:</label>
+		<input name="username" required>
+		<br>
+
+		<label>Password:</label>
+		<input type="password" name="password" required>
+		<br>
+
+		<button type="submit">Crear usuario</button>
+	</form>
+
+	<br>
+
+	<button id="btnMsg">
+		Mostrar mensaje en el servidor
+	</button>
+	
+	<button onclick="onBtnLoginTestOnClick()">Login Test</button>
+	<hr>
+
+	<h2>Prueba de Endpoints</h2>
+
+	<button id="btnPrint">PRINT</button>
+	<button id="btnLog">LOG</button>
+	<button id="btnHelp">HELP</button>
+
+	<br><br>
+
+	<button id="btnHello">SAY HELLO</button>
+	<button id="btnBye">SAY BYE</button>
+
+</body>
+
+<script>
+async function RPCWebAPIFetch(name, content)
+{
+    const response = await fetch(`http://127.0.0.1:3000/${name}`,
+    {
+        method: "POST",
+        headers: 
+        {
+            "Content-Type": "application/json",
+            "x-user-id": "admin",
+            "x-api-key": "1234"
+        },
+        body: JSON.stringify(content)
+    });
+
+    if (response.status === 200)
+    {
+        return await response.json();
+    }
+    else if (response.status === 401)
+    {
+        throw new Error("Unauthorized");
+    }
+    else
+    {
+        const errorData = await response.json();
+        throw new Error(errorData.exception || "Error desconocido");
+    }
+}
+
+async function onBtnPrintOnClick()
+{
+    try 
+    {
+        console.log("CLICK PRINT");
+        const result = await RPCWebAPIFetch("print", {});
+        console.log("RESPUESTA PRINT:", result);
+    }
+    catch (error)
+    {
+        console.error("ERROR:", error.message);
+    }
+}
+
+async function onBtnLogOnClick()
+{
+    try 
+    {
+        console.log("CLICK LOG");
+        await RPCWebAPIFetch("log", {});
+    }
+    catch (error)
+    {
+        console.error("ERROR:", error.message);
+    }
+}
+
+async function onBtnHelpOnClick()
+{
+    try 
+    {
+        console.log("CLICK HELP");
+        await RPCWebAPIFetch("help", {});
+    }
+    catch (error)
+    {
+        console.error("ERROR:", error.message);
+    }
+}
+
+async function onBtnHelloOnClick()
+{
+    try 
+    {
+        console.log("CLICK SAYHELLO");
+        const result = await RPCWebAPIFetch("sayHello", {});
+        console.log("RESPUESTA SAYHELLO:", result);
+    }
+    catch (error)
+    {
+        console.error("ERROR:", error.message);
+    }
+}
+
+async function onBtnByeOnClick()
+{
+    try 
+    {
+        console.log("CLICK SAYBYE");
+        await RPCWebAPIFetch("sayBye", {});
+    }
+    catch (error)
+    {
+        console.error("ERROR:", error.message);
+    }
+}
+
+async function onBtnLoginTestOnClick()
+{
+    try 
+    {
+        const result = await RPCWebAPIFetch("login", {});
+        console.log("RESPUESTA LOGIN:", result);
+    }
+    catch (error)
+    {
+        console.error("ERROR:", error.message);
+    }
+}
+
+function onBtnMsgOnClick()
+{
+    console.log("Enviando petición al servidor...");
+    fetch("http://127.0.0.1:3000/showMessage", { method: "POST" });
+}
+
+function main()
+{
+    btnMsg.onclick = onBtnMsgOnClick;
+    btnPrint.onclick = onBtnPrintOnClick;
+    btnLog.onclick = onBtnLogOnClick;
+    btnHelp.onclick = onBtnHelpOnClick;
+    btnHello.onclick = onBtnHelloOnClick;
+    btnBye.onclick = onBtnByeOnClick;
+}
+
+window.onload = main;
+</script>
+</html>
