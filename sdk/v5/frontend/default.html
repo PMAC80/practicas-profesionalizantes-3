@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Prácticas Profesionalizantes III - v5</title>
     
-    <!-- CSS Obligatorios de la plantilla -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
     <link rel="stylesheet" href="./assets/icons/font-awesome-4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="./assets/css/w3pro-4.13.css">
@@ -20,8 +19,19 @@
 <script>
 
 // =====================================================================
-// PUNTO 1: RPCWebAPIFetch (Encapsulamiento de peticiones)
+// PUNTO 1: RPCWebAPIFetch
 // =====================================================================
+class RPCWebAPIException extends Error
+{
+    constructor(type, detail)
+    {
+        super(detail);
+        this.name = 'RPCWebAPIException';
+        this.type = type;
+        this.detail = detail;
+    }
+}
+
 async function RPCWebAPIFetch(name, content)
 {
     const userId = sessionStorage.getItem('x-user-id') || '';
@@ -39,22 +49,28 @@ async function RPCWebAPIFetch(name, content)
         body: JSON.stringify(content)
     });
 
-    if (response.status === 200)
+    switch (response.status)
     {
-        return await response.json();
-    }
-    else if (response.status === 401)
-    {
-        // Consigna Punto 4: Si es 401, vaciar credenciales y mostrar login
-        sessionStorage.removeItem('x-user-id');
-        sessionStorage.removeItem('x-api-key');
-        showLoginScreen(); 
-        throw new Error("Unauthorized");
-    }
-    else
-    {
-        const errorData = await response.json();
-        throw new Error(errorData.exception || "Error en la petición");
+        case 200:
+            return await response.json();
+        
+        case 400:
+            throw new RPCWebAPIException('Bad Request', 'SpecificationError');
+        
+        case 401:
+            sessionStorage.removeItem('x-user-id');
+            sessionStorage.removeItem('x-api-key');
+            showLoginScreen();
+            throw new RPCWebAPIException('Auth Error', 'UnauthorizedError');
+        
+        case 422:
+            throw new RPCWebAPIException('Domain Error', 'DomainError');
+        
+        case 500:
+            throw new RPCWebAPIException('Server Error', 'ProgramError');
+        
+        default:
+            throw new RPCWebAPIException('Unknown Error', 'SpecificationError');
     }
 }
 
@@ -64,35 +80,57 @@ async function RPCWebAPIFetch(name, content)
 // =====================================================================
 class WCLoginFormView extends HTMLElement
 {
-    constructor() { super(); }
+    constructor()
+    {
+        super();
+
+        this.container = null;
+        this.userInput = null;
+        this.passInput = null;
+        this.btnLogin = null;
+
+        this.onLoginClick = this.onLoginClick.bind(this);
+
+        // Crear estructura en el constructor
+        this.container = this.createForm();
+        this.userInput = this.container.querySelector("#login-user");
+        this.passInput = this.container.querySelector("#login-pass");
+        this.btnLogin = this.container.querySelector("#btn-login");
+    }
 
     connectedCallback()
     {
-        this.appendChild(this.createForm());
-        
-        // Referencias a los inputs
-        this.userInput = this.querySelector("#login-user");
-        this.passInput = this.querySelector("#login-pass");
-        this.btnLogin = this.querySelector("#btn-login");
+        // AppendChild en connectedCallback (patrón Seminario)
+        this.appendChild(this.container);
 
-        this.btnLogin.addEventListener("click", async () => {
-            try {
-                // Guardamos credenciales temporalmente para la petición
-                sessionStorage.setItem('x-user-id', this.userInput.value);
-                sessionStorage.setItem('x-api-key', this.passInput.value);
-                
-                await RPCWebAPIFetch("login", {});
-                
-                // Si llega acá, el login fue exitoso (200)
-                showDashboard();
-            } catch (error) {
-                console.error(error);
-                // Si falla, limpiamos
-                sessionStorage.removeItem('x-user-id');
-                sessionStorage.removeItem('x-api-key');
-                alert("Error de login: " + error.message);
-            }
-        });
+        if (this.btnLogin)
+        {
+            this.btnLogin.addEventListener("click", this.onLoginClick);
+        }
+    }
+
+    disconnectedCallback()
+    {
+        if (this.btnLogin)
+        {
+            this.btnLogin.removeEventListener("click", this.onLoginClick);
+        }
+    }
+
+    async onLoginClick()
+    {
+        try {
+            sessionStorage.setItem('x-user-id', this.userInput.value);
+            sessionStorage.setItem('x-api-key', this.passInput.value);
+            
+            await RPCWebAPIFetch("login", {});
+            showDashboard();
+        } catch (error) {
+            console.error(error);
+            sessionStorage.removeItem('x-user-id');
+            sessionStorage.removeItem('x-api-key');
+            alert("Error de login: " + error.message);
+        }
     }
 
     createForm()
@@ -110,11 +148,10 @@ class WCLoginFormView extends HTMLElement
         let padding = document.createElement("div");
         padding.classList.add("w3-padding-large");
 
-        // Header con Logo ISFT 151
         let header = document.createElement("div");
         header.classList.add("w3-center", "w3-padding-16");
         let logo = document.createElement("img");
-        logo.src = "./assets/f.jpg"; // Logo institucional pedido en consigna
+        logo.src = "./assets/f.jpg";
         logo.classList.add("w3-image");
         logo.style.width = "100px";
         let title = document.createElement("p");
@@ -122,7 +159,6 @@ class WCLoginFormView extends HTMLElement
         header.appendChild(logo);
         header.appendChild(title);
 
-        // Inputs
         let divUser = document.createElement("div");
         divUser.classList.add("w3-margin-bottom");
         let inputUser = document.createElement("input");
@@ -141,14 +177,12 @@ class WCLoginFormView extends HTMLElement
         inputPass.placeholder = "Contraseña";
         divPass.appendChild(inputPass);
 
-        // Botón
         let btn = document.createElement("button");
         btn.type = "button";
         btn.id = "btn-login";
         btn.classList.add("w3-button", "w3-round", "w3-margin-bottom", "w3-primary", "w3-block");
         btn.textContent = "Ingresar";
 
-        // Ensamblado (Sin innerHTML, solo API DOM)
         padding.appendChild(header);
         padding.appendChild(divUser);
         padding.appendChild(divPass);
@@ -168,28 +202,53 @@ customElements.define("wc-login-form-view", WCLoginFormView);
 // =====================================================================
 class WCRegisterFormView extends HTMLElement
 {
-    constructor() { super(); }
+    constructor()
+    {
+        super();
+
+        this.container = null;
+        this.userInput = null;
+        this.passInput = null;
+        this.btnReg = null;
+
+        this.onRegisterClick = this.onRegisterClick.bind(this);
+
+        this.container = this.createForm();
+        this.userInput = this.container.querySelector("#reg-user");
+        this.passInput = this.container.querySelector("#reg-pass");
+        this.btnReg = this.container.querySelector("#btn-register");
+    }
 
     connectedCallback()
     {
-        this.appendChild(this.createForm());
-        
-        this.userInput = this.querySelector("#reg-user");
-        this.passInput = this.querySelector("#reg-pass");
-        this.btnReg = this.querySelector("#btn-register");
+        this.appendChild(this.container);
 
-        this.btnReg.addEventListener("click", async () => {
-            try {
-                await RPCWebAPIFetch("register", {
-                    username: this.userInput.value,
-                    password: this.passInput.value
-                });
-                alert("Usuario registrado con éxito");
-                showLoginScreen(); // Volver al login
-            } catch (error) {
-                alert("Error al registrar: " + error.message);
-            }
-        });
+        if (this.btnReg)
+        {
+            this.btnReg.addEventListener("click", this.onRegisterClick);
+        }
+    }
+
+    disconnectedCallback()
+    {
+        if (this.btnReg)
+        {
+            this.btnReg.removeEventListener("click", this.onRegisterClick);
+        }
+    }
+
+    async onRegisterClick()
+    {
+        try {
+            await RPCWebAPIFetch("register", {
+                username: this.userInput.value,
+                password: this.passInput.value
+            });
+            alert("Usuario registrado con éxito");
+            showLoginScreen();
+        } catch (error) {
+            alert("Error al registrar: " + error.message);
+        }
     }
 
     createForm()
@@ -252,50 +311,146 @@ customElements.define("wc-register-form-view", WCRegisterFormView);
 
 
 // =====================================================================
-// PUNTO 4: LAYOUT PRINCIPAL (WCApplicationView simplificado para v5)
+// PUNTO 4: WEBCOMPONENT - WCApplicationView (Patrón Seminario)
 // =====================================================================
 class WCApplicationView extends HTMLElement
 {
     constructor()
     {
         super();
+
+        this.application = null;
+        this.navbar = null;
+        this.sidebar = null;
+        this.content = null;
         this.contentDiv = null;
+        this.footer = null;
+
+        this.menuButton = null;
+        this.btnLogout = null;
+        this.endpointButtons = [];
+
+        this.onMenuButtonClick = this.onMenuButtonClick.bind(this);
+        this.onLogoutClick = this.onLogoutClick.bind(this);
+        this.onEndpointClick = this.onEndpointClick.bind(this);
+
+        // Crear estructura en el constructor
+        this.navbar = this.createNavbar();
+        this.sidebar = this.createSidebar();
+        this.content = this.createContent();
+        this.footer = this.createFooter();
+
+        this.application = this.createApplication();
+        
+        // Obtener referencias
+        this.contentDiv = this.content.querySelector(".content-div");
+        this.btnLogout = this.navbar.querySelector("#btn-logout");
     }
 
     connectedCallback()
     {
-        this.appendChild(this.createLayout());
+        // AppendChild en connectedCallback (patrón Seminario)
+        this.appendChild(this.application);
+
+        if (this.menuButton)
+        {
+            this.menuButton.addEventListener("click", this.onMenuButtonClick);
+        }
+
+        if (this.btnLogout)
+        {
+            this.btnLogout.addEventListener("click", this.onLogoutClick);
+        }
+
+        // Asignar eventos de endpoints
+        this.endpointButtons.forEach(btn => {
+            btn.addEventListener("click", this.onEndpointClick);
+        });
+    }
+
+    disconnectedCallback()
+    {
+        if (this.menuButton)
+        {
+            this.menuButton.removeEventListener("click", this.onMenuButtonClick);
+        }
+
+        if (this.btnLogout)
+        {
+            this.btnLogout.removeEventListener("click", this.onLogoutClick);
+        }
+
+        this.endpointButtons.forEach(btn => {
+            btn.removeEventListener("click", this.onEndpointClick);
+        });
     }
 
     getContentDiv() { return this.contentDiv; }
 
-    createLayout()
+    clearContent()
+    {
+        while (this.contentDiv.firstChild)
+        {
+            this.contentDiv.removeChild(this.contentDiv.firstChild);
+        }
+    }
+
+    onMenuButtonClick(event)
+    {
+        console.log("Click en menú hamburguesa");
+        
+        const sidebar = document.getElementById("sidebar");
+        const currentWidth = sidebar.style.width;
+        
+        if (currentWidth === "0px" || currentWidth === "") {
+            sidebar.style.width = "230px";
+        } else {
+            sidebar.style.width = "0px";
+        }
+    }   
+
+    onLogoutClick()
+    {
+        sessionStorage.removeItem('x-user-id');
+        sessionStorage.removeItem('x-api-key');
+        showLoginScreen();
+    }
+
+    onEndpointClick(event)
+    {
+        event.preventDefault();
+        const endpointName = event.currentTarget.dataset.endpoint;
+        this.callEndpoint(endpointName);
+    }
+
+    async callEndpoint(endpointName)
+    {
+        try {
+            const result = await RPCWebAPIFetch(endpointName, {});
+            console.log(`${endpointName}:`, result);
+            alert(`${endpointName}: ${JSON.stringify(result)}`);
+        } catch (error) {
+            console.error("Error:", error.message);
+            alert(`Error en ${endpointName}: ${error.message}`);
+        }
+    }
+
+    createApplication()
     {
         let app = document.createElement("div");
         app.id = "app";
 
-        // Checkbox para el sidebar
         let checkbox = document.createElement("input");
         checkbox.id = "sidebar-control";
         checkbox.type = "checkbox";
         checkbox.classList.add("w3-hide");
-        app.appendChild(checkbox);
 
-        // Navbar
-        app.appendChild(this.createNavbar());
+        app.appendChild(checkbox);
+        app.appendChild(this.navbar);
+        app.appendChild(this.sidebar);
         
-        // Sidebar
-        app.appendChild(this.createSidebar());
-        
-        // Content
-        let main = document.createElement("div");
-        main.classList.add("w3-main");
-        main.style.marginTop = "54px";
-        
-        this.contentDiv = document.createElement("div");
-        this.contentDiv.style.padding = "16px 32px";
-        main.appendChild(this.contentDiv);
-        app.appendChild(main);
+        this.content.appendChild(this.footer);
+        app.appendChild(this.content);
 
         return app;
     }
@@ -303,57 +458,15 @@ class WCApplicationView extends HTMLElement
     createNavbar()
     {
         let navbar = document.createElement("div");
+        let flexBar = document.createElement("div");
+
         navbar.classList.add("w3-top", "w3-card");
         navbar.style.height = "54px";
-        
-        let flexBar = document.createElement("div");
         flexBar.classList.add("w3-flex-bar", "w3-theme", "w3-left-align");
 
-        // Logo ISFT 151 en la navbar
-        let logoContainer = document.createElement("div");
-        logoContainer.classList.add("w3-bar-item");
-        let img = document.createElement("img");
-        img.src = "./assets/f.jpg"; // Logo institucional pedido en consigna
-        img.style.height = "40px";
-        img.style.marginLeft = "10px";
-        logoContainer.appendChild(img);
-        flexBar.appendChild(logoContainer);
-
-        // Botón hamburguesa
-        let menuBtn = document.createElement("label");
-        menuBtn.htmlFor = "sidebar-control";
-        menuBtn.classList.add("w3-button", "w3-large", "w3-opacity-min");
-        let iconMenu = document.createElement("i");
-        iconMenu.classList.add("fa", "fa-bars");
-        menuBtn.appendChild(iconMenu);
-        flexBar.appendChild(menuBtn);
-
-        // Espaciador
-        let spacer = document.createElement("div");
-        spacer.style.flex = "1";
-        flexBar.appendChild(spacer);
-
-        // Botones derecha (Logout pedido en consigna)
-        let rightDiv = document.createElement("div");
-        rightDiv.classList.add("w3-right");
-        
-        let btnLogout = document.createElement("button");
-        btnLogout.type = "button";
-        btnLogout.classList.add("w3-button", "w3-large", "w3-opacity-min");
-        btnLogout.title = "Cerrar Sesión";
-        let iconLogout = document.createElement("i");
-        iconLogout.classList.add("fa", "fa-sign-out");
-        btnLogout.appendChild(iconLogout);
-        
-        // Lógica de Logout (Consigna Punto 4)
-        btnLogout.onclick = () => {
-            sessionStorage.removeItem('x-user-id');
-            sessionStorage.removeItem('x-api-key');
-            showLoginScreen();
-        };
-
-        rightDiv.appendChild(btnLogout);
-        flexBar.appendChild(rightDiv);
+        flexBar.appendChild(this.createLogo());
+        flexBar.appendChild(this.createMenuButton());
+        flexBar.appendChild(this.createRightButtons());
 
         navbar.appendChild(flexBar);
         return navbar;
@@ -362,54 +475,233 @@ class WCApplicationView extends HTMLElement
     createSidebar()
     {
         let nav = document.createElement("nav");
+
         nav.id = "sidebar";
-        nav.classList.add("w3-sidebar", "w3-top", "w3-bottom", "w3-collapse", "w3-white", "w3-border-right", "w3-border-top");
+        nav.classList.add("w3-sidebar", "w3-top", "w3-bottom", "w3-collapse", "w3-white", "w3-border-right", "w3-border-top", "scrollbar");
         nav.style.zIndex = "3";
         nav.style.width = "230px";
         nav.style.height = "auto";
         nav.style.marginTop = "54px";
+        nav.style.setProperty("border-color", "rgba(0, 0, 0, .1)", "important");
 
-        let menu = document.createElement("div");
-        menu.classList.add("w3-bar-block");
+        nav.appendChild(this.createSidebarHeader());
+        nav.appendChild(this.createSidebarMenu());
 
-        // Título menú
-        let title = document.createElement("span");
-        title.classList.add("w3-bar-item", "w3-padding", "w3-small", "w3-opacity");
-        title.textContent = " MENÚ PRINCIPAL ";
-        menu.appendChild(title);
-
-        // Items pedidos en la consigna Punto 4
-        menu.appendChild(this.createSidebarItem("fa-users", "Gestión de usuarios y grupos", "#"));
-        menu.appendChild(this.createSidebarItem("fa-lock", "Control de accesos", "#"));
-        
-        // Botón para ir a Registro (para probar el otro WebComponent)
-        menu.appendChild(this.createSidebarItem("fa-user-plus", "Ir a Registro", "#register"));
-
-        nav.appendChild(menu);
         return nav;
+    }
+
+    createContent()
+    {
+        let main = document.createElement("div");
+        let contentDiv = document.createElement("div");
+
+        main.classList.add("w3-main");
+        main.style.marginTop = "54px";
+        contentDiv.classList.add("content-div");
+        contentDiv.style.padding = "16px 32px";
+
+        main.appendChild(contentDiv);
+        return main;
+    }
+
+    createFooter()
+    {
+        let footer = document.createElement("footer");
+        let spanFooter = document.createElement("span");
+        let spanHeart = document.createElement("span");
+        let footerLink = document.createElement("a");
+        let strongFooter = document.createElement("strong");
+
+        footer.classList.add("w3-padding", "w3-border-top", "w3-center", "w3-white", "w3-margin-top");
+        spanFooter.classList.add("w3-opacity");
+        spanHeart.classList.add("w3-text-red");
+        footerLink.href = "https://w3mix.com";
+        footerLink.target = "_blank";
+        strongFooter.textContent = "W3Mix.com";
+
+        footerLink.appendChild(strongFooter);
+        spanHeart.appendChild(document.createTextNode("♥"));
+        spanFooter.appendChild(document.createTextNode("Powered with "));
+        spanFooter.appendChild(spanHeart);
+        spanFooter.appendChild(document.createTextNode(" by "));
+        spanFooter.appendChild(footerLink);
+        spanFooter.appendChild(document.createTextNode("."));
+        footer.appendChild(spanFooter);
+
+        return footer;
+    }
+
+    createTopButton(iconClass)
+    {
+        let button = document.createElement("button");
+        let icon = document.createElement("i");
+
+        button.type = "button";
+        button.classList.add("w3-button", "w3-large", "w3-opacity-min");
+        icon.classList.add("fa", iconClass);
+
+        button.appendChild(icon);
+        return button;
     }
 
     createSidebarItem(iconClass, text, href)
     {
         let item = document.createElement("a");
-        item.href = href;
-        item.classList.add("w3-bar-item", "w3-button", "w3-padding-large");
-        
         let icon = document.createElement("i");
-        icon.classList.add("fa", "fa-fw", iconClass);
+        let label = document.createTextNode("\u00A0 " + text);
+
+        item.href = href;
+        item.classList.add("w3-bar-item", "w3-button", "w3-padding-large", "w3-hover-text-primary");
         
-        let label = document.createTextNode(" " + text);
-        
+        const iconClasses = iconClass.split(" ");
+        icon.classList.add("fa", "fa-fw");
+        iconClasses.forEach(cls => icon.classList.add(cls));
+
         item.appendChild(icon);
         item.appendChild(label);
+
         return item;
+    }
+
+    createLogo()
+    {
+        let container = document.createElement("div");
+        let title = document.createElement("h5");
+        let link = document.createElement("a");
+        let img = document.createElement("img");
+
+        container.classList.add("admin-logo", "w3-bar-item", "w3-hide-medium", "w3-hide-small");
+        title.style.lineHeight = "1";
+        title.style.setProperty("margin", "0", "important");
+        title.style.fontWeight = "300";
+        link.href = "./index.html";
+        link.classList.add("w3-button", "w3-bold");
+        img.src = "./assets/f.jpg";
+        img.alt = "ISFT 151";
+        img.classList.add("w3-image");
+        img.style.height = "40px";
+
+        link.appendChild(img);
+        title.appendChild(link);
+        container.appendChild(title);
+
+        return container;
+    }
+
+    createMenuButton()
+    {
+        let label = document.createElement("label");
+        let icon = document.createElement("i");
+
+        label.htmlFor = "sidebar-control";
+        label.classList.add("w3-button", "w3-large", "w3-opacity-min");
+        icon.classList.add("fa", "fa-bars");
+
+        label.appendChild(icon);
+        this.menuButton = label;
+
+        return label;
+    }
+
+    createRightButtons()
+    {
+        let container = document.createElement("div");
+        container.classList.add("w3-right");
+
+        // Botón de logout
+        let btnLogout = document.createElement("button");
+        btnLogout.type = "button";
+        btnLogout.id = "btn-logout";
+        btnLogout.classList.add("w3-button", "w3-large", "w3-opacity-min");
+        btnLogout.title = "Cerrar Sesión";
+        let iconLogout = document.createElement("i");
+        iconLogout.classList.add("fa", "fa-sign-out");
+        btnLogout.appendChild(iconLogout);
+
+        container.appendChild(btnLogout);
+        return container;
+    }
+
+    createSidebarHeader()
+    {
+        let header = document.createElement("div");
+        let label = document.createElement("label");
+        let icon = document.createElement("i");
+        let title = document.createElement("h5");
+        let link = document.createElement("a");
+        let img = document.createElement("img");
+
+        header.classList.add("w3-bar-item", "w3-border-bottom", "w3-hide-large");
+        header.style.padding = "6px 0";
+
+        label.htmlFor = "sidebar-control";
+        label.classList.add("w3-left", "w3-button", "w3-large", "w3-opacity-min");
+        label.style.setProperty("background", "white", "important");
+        icon.classList.add("fa", "fa-bars");
+
+        title.style.lineHeight = "1";
+        title.style.setProperty("margin", "0", "important");
+        title.style.fontWeight = "300";
+        link.href = "./index.html";
+        link.classList.add("w3-button");
+        link.style.setProperty("background", "white", "important");
+        img.src = "./assets/f.jpg";
+        img.alt = "ISFT 151";
+        img.classList.add("w3-image");
+
+        label.appendChild(icon);
+        link.appendChild(img);
+        title.appendChild(link);
+        header.appendChild(label);
+        header.appendChild(title);
+
+        return header;
+    }
+
+    createSidebarMenu()
+    {
+        let menu = document.createElement("div");
+        let navTitle = document.createElement("span");
+
+        menu.classList.add("w3-bar-block");
+
+        navTitle.classList.add("w3-bar-item", "w3-padding", "w3-small", "w3-opacity");
+        navTitle.style.marginTop = "8px";
+        navTitle.textContent = " MENÚ PRINCIPAL ";
+
+        menu.appendChild(navTitle);
+        menu.appendChild(this.createSidebarItem("fa-users", "Gestión de usuarios y grupos", "#"));
+        menu.appendChild(this.createSidebarItem("fa-lock", "Control de accesos", "#"));
+
+        // Sección de endpoints
+        let endpointsTitle = document.createElement("span");
+        endpointsTitle.classList.add("w3-bar-item", "w3-padding", "w3-small", "w3-opacity");
+        endpointsTitle.style.marginTop = "16px";
+        endpointsTitle.textContent = " ENDPOINTS ";
+        menu.appendChild(endpointsTitle);
+
+        // Función auxiliar para crear items de endpoints
+        const addEndpoint = (iconClass, text, endpointName) => {
+            let item = this.createSidebarItem(iconClass, text, "#");
+            item.dataset.endpoint = endpointName;
+            this.endpointButtons.push(item);
+            menu.appendChild(item);
+        };
+
+        addEndpoint("fa-print", "PRINT", "print");
+        addEndpoint("fa-file-text-o", "LOG", "log");
+        addEndpoint("fa-question-circle", "HELP", "help");
+        addEndpoint("fa-smile-o", "SAY HELLO", "sayHello");
+        addEndpoint("fa-frown-o", "SAY BYE", "sayBye");
+
+        return menu;
     }
 }
 customElements.define("wc-application-view", WCApplicationView);
 
 
 // =====================================================================
-// LÓGICA DE NAVEGACIÓN (Punto 4: Mostrar Login o Dashboard)
+// LÓGICA DE NAVEGACIÓN
 // =====================================================================
 let appInstance = null;
 
@@ -433,42 +725,28 @@ function checkSession()
 function showLoginScreen()
 {
     if (!appInstance) return;
-    let content = appInstance.getContentDiv();
-    content.innerHTML = ""; // Limpiamos el contenido
     
-    // Ocultar sidebar si estamos en login (opcional, pero queda mejor)
+    appInstance.clearContent();
     document.getElementById("sidebar").style.display = "none";
     
     let loginForm = new WCLoginFormView();
-    content.appendChild(loginForm);
+    appInstance.getContentDiv().appendChild(loginForm);
 }
 
 function showDashboard()
 {
     if (!appInstance) return;
-    let content = appInstance.getContentDiv();
-    content.innerHTML = "";
     
-    // Mostrar sidebar
+    appInstance.clearContent();
     document.getElementById("sidebar").style.display = "block";
 
     let h2 = document.createElement("h2");
     h2.textContent = "Bienvenido al Sistema";
-    content.appendChild(h2);
+    appInstance.getContentDiv().appendChild(h2);
 
     let p = document.createElement("p");
     p.textContent = "Usuario logueado: " + sessionStorage.getItem('x-user-id');
-    content.appendChild(p);
-    
-    // Botón para probar el registro
-    let btnReg = document.createElement("button");
-    btnReg.className = "w3-button w3-margin-top";
-    btnReg.textContent = "Probar Formulario de Registro";
-    btnReg.onclick = () => {
-        content.innerHTML = "";
-        content.appendChild(new WCRegisterFormView());
-    };
-    content.appendChild(btnReg);
+    appInstance.getContentDiv().appendChild(p);
 }
 
 window.onload = initApp;
